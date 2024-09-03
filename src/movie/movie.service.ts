@@ -1,13 +1,12 @@
-import { Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Query } from '@nestjs/common';
-import { AppService } from './app.service';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
-interface Movie {
+export interface Movie {
   id: number
   title: string
 }
 
-@Controller("movie")
-export class AppController {
+@Injectable()
+export class MovieService {
   private movies: Movie[] = [
     {
       id: 1,
@@ -20,19 +19,15 @@ export class AppController {
   ];
   private idCounter = 3;
 
-  constructor(private readonly appService: AppService) { }
-
-  @Get()
-  getMovies(@Query("title") title?: string) {
-    if(!title) {
+  getManyMovies(title?: string) {
+    if (!title) {
       return this.movies
     }
 
     return this.movies.filter(m => m.title.startsWith(title))
   }
 
-  @Get("/:id")
-  getMovie(@Param("id") id: string) {
+  getMovieById(id: number) {
     const movie = this.movies.find((m) => m.id === +id)
 
     if (!movie) {
@@ -42,11 +37,10 @@ export class AppController {
     return movie
   }
 
-  @Post()
-  postMovie(@Body("title") title: string) {
+  createMoive(title: string) {
     const movie: Movie = {
       id: this.idCounter++,
-      title: title
+      title: ""
     }
 
     this.movies.push(
@@ -56,9 +50,8 @@ export class AppController {
     return movie;
   }
 
-  @Patch("/:id")
-  patchMovie(@Param('id') id: string, @Body("title") title: string) {
-    const movie = this.movies.find((m) => m.id === +id)
+  updateMovie(id: number, title: string) {
+    const movie = this.movies.find((m) => m.id === id)
 
     if (!movie) {
       throw new NotFoundException("존재하지 않는 ID의 영화입니다!")
@@ -69,9 +62,8 @@ export class AppController {
     return movie
   }
 
-  @Delete("/:id")
-  deleteMovie(@Param('id') id: string) {
-    const movieIndex = this.movies.findIndex((m) => m.id === +id)
+  deleteMovie(id: number) {
+    const movieIndex = this.movies.findIndex((m) => m.id === id)
 
     if (movieIndex === -1) {
       throw new NotFoundException("존재하지 않는 ID의 영화입니다!")
