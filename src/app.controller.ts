@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, NotFoundException, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Query } from '@nestjs/common';
 import { AppService } from './app.service';
 
 interface Movie {
@@ -18,19 +18,24 @@ export class AppController {
       title: "반지의 제왕"
     }
   ];
+  private idCounter = 3;
 
-  constructor(private readonly appService: AppService) {}
+  constructor(private readonly appService: AppService) { }
 
   @Get()
-  getMovies() {
-    return this.movies
+  getMovies(@Query("title") title?: string) {
+    if(!title) {
+      return this.movies
+    }
+
+    return this.movies.filter(m => m.title.startsWith(title))
   }
 
   @Get("/:id")
   getMovie(@Param("id") id: string) {
     const movie = this.movies.find((m) => m.id === +id)
 
-    if(!movie) {
+    if (!movie) {
       throw new NotFoundException("존재하지 않는 ID의 영화입니다!")
     }
 
@@ -38,25 +43,42 @@ export class AppController {
   }
 
   @Post()
-  postMovie() {
-    return {
-      id: 3,
-      name: '어벤저스',
-      character: ["아이언맨", "캡틴아메리카"]
+  postMovie(@Body("title") title: string) {
+    const movie: Movie = {
+      id: this.idCounter++,
+      title: title
     }
+
+    this.movies.push(
+      movie
+    )
+
+    return movie;
   }
 
   @Patch("/:id")
-  patchMovie() {
-    return {
-      id: 3,
-      name: '어벤져스',
-      character: ['아이언맨', '블랙위도우']
+  patchMovie(@Param('id') id: string, @Body("title") title: string) {
+    const movie = this.movies.find((m) => m.id === +id)
+
+    if (!movie) {
+      throw new NotFoundException("존재하지 않는 ID의 영화입니다!")
     }
+
+    Object.assign(movie, { title })
+
+    return movie
   }
 
   @Delete("/:id")
-  deleteMovie() {
-    return 3
+  deleteMovie(@Param('id') id: string) {
+    const movieIndex = this.movies.findIndex((m) => m.id === +id)
+
+    if (movieIndex === -1) {
+      throw new NotFoundException("존재하지 않는 ID의 영화입니다!")
+    }
+
+    this.movies.splice(movieIndex, 1);
+
+    return id
   }
 }
