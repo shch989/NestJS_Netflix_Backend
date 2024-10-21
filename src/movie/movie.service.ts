@@ -2,38 +2,35 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateMoiveDto } from './dto/create-movie.dto';
 import { UpdateMoiveDto } from './dto/update-movie.dto';
 import { Movie } from './entity/movie.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Like, Repository } from 'typeorm';
 
 @Injectable()
 export class MovieService {
-  private movies: Movie[] = [];
-  private idCounter = 3;
+  constructor(
+    @InjectRepository(Movie)
+    private readonly movieRepository: Repository<Movie>,
+  ) { }
 
-  constructor() {
-    const movie1 = new Movie()
-
-    movie1.id = 1
-    movie1.title = "해리포터"
-    movie1.genre = "fantasy"
-
-    const movie2 = new Movie();
-    movie2.id = 2;
-    movie2.title = '반지의 제왕'
-    movie2.genre = 'action'
-
-    this.movies.push(movie1, movie2)
-  }
-
-  getManyMovies(title?: string) {
-    console.log(this.movies)
+  async getManyMovies(title?: string) {
+    /// 나중에 title 필터 기능 추가하기
     if (!title) {
-      return this.movies
+      return [await this.movieRepository.find(), await this.movieRepository.count()]
     }
 
-    return this.movies.filter(m => m.title.startsWith(title))
+    return this.movieRepository.findAndCount({
+      where: {
+        title: Like(`%${title}%`),
+      },
+    })
   }
 
-  getMovieById(id: number) {
-    const movie = this.movies.find((m) => m.id === +id)
+  async getMovieById(id: number) {
+    const movie = await this.movieRepository.findOne({
+      where: {
+        id,
+      }
+    })
 
     if (!movie) {
       throw new NotFoundException("존재하지 않는 ID의 영화입니다!")
@@ -42,39 +39,52 @@ export class MovieService {
     return movie
   }
 
-  createMoive(createMoiveDto: CreateMoiveDto) {
-    const movie: Movie = {
-      id: this.idCounter++,
-      ...createMoiveDto
-    }
-
-    this.movies.push(
-      movie
-    )
+  async createMoive(createMoiveDto: CreateMoiveDto) {
+    const movie = await this.movieRepository.save({
+      ...createMoiveDto,
+      runtime: 100,
+    })
 
     return movie;
   }
 
-  updateMovie(id: number, updateMovieDto: UpdateMoiveDto) {
-    const movie = this.movies.find((m) => m.id === id)
+  async updateMovie(id: number, updateMovieDto: UpdateMoiveDto) {
+    const movie = await this.movieRepository.findOne({
+      where: {
+        id,
+      }
+    })
 
     if (!movie) {
       throw new NotFoundException("존재하지 않는 ID의 영화입니다!")
     }
 
-    Object.assign(movie, { ...updateMovieDto })
+    await this.movieRepository.update(
+      { id },
+      updateMovieDto
+    )
 
-    return movie
+    const newMovie = await this.movieRepository.findOne({
+      where: {
+        id,
+      }
+    })
+
+    return newMovie
   }
 
-  deleteMovie(id: number) {
-    const movieIndex = this.movies.findIndex((m) => m.id === id)
+  async deleteMovie(id: number) {
+    const movie = await this.movieRepository.findOne({
+      where: {
+        id,
+      }
+    })
 
-    if (movieIndex === -1) {
+    if (!movie) {
       throw new NotFoundException("존재하지 않는 ID의 영화입니다!")
     }
 
-    this.movies.splice(movieIndex, 1);
+    await this.movieRepository.delete(id)
 
     return id
   }
