@@ -7,4 +7,7 @@ export class CreateMoiveDto {
     
     @IsNotEmpty()
     genre: string
+
+    @IsNotEmpty()
+    detail: string
 }

@@ -14,4 +14,8 @@ export class UpdateMoiveDto {
     @IsNotEmpty()
     @IsOptional()
     genre?: string
+
+    @IsNotEmpty()
+    @IsOptional()
+    detail?:string
 }
